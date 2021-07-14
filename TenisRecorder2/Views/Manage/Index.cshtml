@@ -1,0 +1,51 @@
+﻿@model TenisRecorder2.Models.IndexViewModel
+@{
+    ViewBag.Title = "Profil";
+}
+
+<h2>@ViewBag.Title.</h2>
+
+<p class="text-success">@ViewBag.StatusMessage</p>
+<div>
+    <h4>Zarządzaj swoim kontem</h4>
+    <hr />
+    <div class="col-md-offset-2 col-md-10">
+        @{string str2 = @Model.Email;}
+        <h5>E-mail: @str2</h5>
+        @if (Model.HasPassword)
+        {
+            @Html.ActionLink("Zmień hasło", "ChangePassword", routeValues: null, htmlAttributes: new { @class = "btn btn-secondary" })
+        }
+        else
+        {
+            @Html.ActionLink("Stwórz", "SetPassword", routeValues: null, htmlAttributes: new { @class = "btn btn-secondary" })
+        }
+    </div>
+    <div class="col-md-offset-2 col-md-10" style="margin-top:10px;">
+        @{
+            string day = "";
+            if (Model.BirthDate.Day < 10)
+            {
+                day = "0" + Model.BirthDate.Day;
+            }
+            else {
+                day = "" + Model.BirthDate.Day;
+            }
+
+            string month = "";
+            if (Model.BirthDate.Month < 9)
+            {
+                month ="0"+ Model.BirthDate.Month;
+            }
+            else
+            {
+                month = "" + Model.BirthDate.Month;
+            }
+            string str = day + "." + month + "." + Model.BirthDate.Year;
+            <h5>Imie: @Model.Name</h5>
+            <h5>Nazwisko: @Model.Surname</h5>
+            <h5>Data Urodzenia: @str</h5>
+        }
+        @Html.ActionLink("Zmień dane", "ChangeInformation", routeValues: null, htmlAttributes: new { @class = "btn btn-secondary" })
+    </div>  
+</div>

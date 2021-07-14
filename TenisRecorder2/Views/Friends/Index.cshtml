@@ -1,0 +1,353 @@
+﻿
+@{
+    ViewBag.Title = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+@using Microsoft.AspNet.Identity
+
+<style type="text/css">
+    li {
+        margin: 10px;
+    }
+
+    .dataTable > thead > tr > th[class*="sort"]:after {
+        content: "" !important;
+    }
+
+    table {
+        width: 100%;
+    }
+
+
+</style>
+<h2>Znajomi</h2>
+<ul class="nav nav-pills">
+    <li class="nav-item">
+        <a class="nav-link alert-secondary" href="#" id="newFriend">Dodaj znajomego</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link alert-secondary" href="#" id="allFriends">Znajomi</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link alert-secondary" href="#" id="conversations">Rozmowa</a>
+    </li>
+</ul>
+<div id="friendsContent">
+    <div class="jumbotron">
+        <h1 class="display-3">Znajomi!</h1>
+        <p class="lead">Do nawigowania po tej zakładce użyj przycisków powyżej! </p>
+    </div>
+    <div id="friends" style="display:none;">
+        <table class="table table-hover text-center" id="friendsTable">
+            <thead>
+                <tr>
+                    <th scope="col">e-mail</th>
+                    <th scope="col">imie i nazwisko</th>
+                    <th scope="col"></th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+    <div id="manageFriends" style="display:none;">
+        <div id="pendingFriends">
+            <p id="noPendingFriends">Brak użytkowników czekających na przyjecie zaproszenia.</p>
+        </div>
+        <div id="PendingTableWraper">
+            <table class="table table-hover text-center" id="pendingTable">
+                <thead>
+                    <tr>
+                        <th scope="col">e-mail</th>
+                        <th scope="col">imie i nazwisko</th>
+                        <th scope="col"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+        <div id="friendsPaired" class="list-group ">
+            <ul id="pairedList">
+            </ul>
+        </div>
+    </div>
+    <div id="conversationDiv" ">
+        <div class="card border-primary mb-3">
+            <h2 id="coversationPartnerName" class="text-center card-header"></h2>
+            <div id="conversationContent" class="alert-secondary card-body" style="height:300px;overflow-y:scroll;overflow-x:hidden;"></div>
+        </div>
+        <input id="chatText" class="input-group-text" type="text" style="width:100%;max-width:100%;text-align:left;margin-top:10px;" />
+    </div>
+</div>
+
+@section scripts{
+    <script>
+
+        $(document).ready(function () {
+        @{string id = User.Identity.GetUserId();}
+             var idUser = "@id";
+            var currentChatFriend = null;
+            $('#friends').hide();
+            $('#manageFriends').hide();
+            $('#conversationDiv').hide();
+            $('#newFriend').on('click', function () {
+                $(this).addClass('active');
+                $('#allFriends').removeClass('active');
+                $('#conversations').removeClass('active');
+                $('#friends').show().siblings('div').hide().siblings('input').hide();
+                $('#friendsTable').css('width', "");
+            });
+
+            $('#allFriends').on('click', function () {
+                $(this).addClass('active');
+                $('#newFriend').removeClass('active');
+                $('#conversations').removeClass('active');
+                $('#manageFriends').show().siblings('div').hide().siblings('input').hide();
+
+                var pendingTable = $("#pendingTable").DataTable({
+                    retrieve: true,
+                    language: {
+                        processing: "Przetwarzanie...",
+                        search: "Szukaj:",
+                        lengthMenu: "Pokaż _MENU_ pozycji",
+                        info: "Pozycje od _START_ do _END_ z _TOTAL_ łącznie",
+                        infoEmpty: "Pozycji 0 z 0 dostępnych",
+                        infoFiltered: "(filtrowanie spośród _MAX_ dostępnych pozycji)",
+                        infoPostFix: "",
+                        loadingRecords: "Wczytywanie...",
+                        zeroRecords: "Nie znaleziono pasujących pozycji",
+                        emptyTable: "Brak danych",
+                        paginate: {
+                            first: "Pierwsza",
+                            previous: "Poprzednia",
+                            next: "Następna",
+                            last: "Ostatnia"
+                        },
+                        aria: {
+                            sortAscending: ": aktywuj, by posortować kolumnę rosnąco",
+                            sortDescending: ": aktywuj, by posortować kolumnę malejąco"
+                        }
+                    },
+
+                    ajax: {
+                        url: "/Friends/Pending",
+                        dataSrc: ""
+                    },
+                    columns: [
+                        {
+                            render: function (data, type, opp) {
+                                return opp.email;
+                            }
+                        },
+                        {
+                            render: function (data, type, opp) {
+                                return opp.name;
+                            }
+                        },
+                        {
+                            data: "id",
+                            render: function (data) {
+                                return "<button class='btn-primary js-add' data-fr-id=" + data + ">Przyjmij/Odrzuć</button>";
+                            }
+                        }
+                    ]
+                });//Tworzenie tabeli dodawaniea przyjaciol
+                setTimeout(function () {
+                    if (!pendingTable.data().count()) {
+                        $('#PendingTableWraper').hide();
+                        $('#pendingFriends').show();
+                    }
+                    else {
+                        $('#PendingTableWraper').show();
+                        $('#pendingFriends').hide();
+                    }
+
+                }, 100);
+
+                $.ajax({
+                    type: 'GET',
+                    dataType: 'json',
+                    url: '/Friends/Paried',
+                    success: function (response) {
+                        $('#pairedList').empty();
+                        $.each(response, function (i, item) {
+                            $('#pairedList').append('<li class="list-group-item list-group-item-action text-center font-weight-bold js-conversation" data-paired-id=' + item.id + '>' + item.name + '</li>')
+                        });
+                    }
+                });
+            });
+
+
+            $('#pairedList').on('click', 'li', function (e) {
+                $('#conversations').addClass('active');
+                $('#allFriends').removeClass('active');
+                $('#newFriend').removeClass('active');
+                // $('#friendsContent').empty();
+                currentChatFriend = $(this).attr("data-paired-id");
+                $('#coversationPartnerName').html($(this).text());
+                $("#conversationContent").children("div").empty();
+                //console.log(idUser);
+                $.ajax({
+                    url: "/Friends/GetAllMessages/" + currentChatFriend,
+                    method: "GET",
+                    success: function (data) {
+                        $.each(data, function (index) {                           
+                            var element = data[index];
+                            if (element.whoSent == idUser) {
+                                var str = "<div style='text-align:left;margin-right:20%;margin-top:10px;'><span style='text-align:left'><b>Napisałeś/aś</b>:</br>" + element.message+ "</span></div>"
+                                $("#conversationContent").append(str);
+                            }
+                            else {
+                                var str = "<div style='text-align:right;margin-left:20%;margin-top:10px;'><span style='text-align:rigth'><b>Odpisał/a</b>:</br>" + element.message + "</span></div>"
+                                $("#conversationContent").append(str);
+                            }
+
+                        });
+                    }
+                });
+                $('#conversationDiv').show().siblings('div').hide();
+            });
+            $('#chatText').on('keypress', function (e) {
+                if (e.which == 13 && !isEmptyOrSpaces(this.value)) {
+                    var mm = {
+                        ConvId: currentChatFriend,
+                        WhoSent: idUser,
+                        Text: this.value
+                    };
+                    $.ajax({
+                        url: "/Friends/SendMessage ",
+                        method: "POST",
+                        data: mm,
+                        success: function () {
+                            var str = "<div style='margin-right:20%;margin-top:10px;><span style='text-align:left'><b>Napisałeś/aś</b>: " + mm.Text + "</span></div>"
+                            $("#conversationContent").append(str);
+                        }
+                    })
+                    this.value = "";
+                }
+            });
+
+            function isEmptyOrSpaces(str) {
+                return str === null || str.match(/^ *$/) !== null;
+            }
+
+            var table = $("#friendsTable").DataTable({
+                language: {
+                    processing: "Przetwarzanie...",
+                    search: "Szukaj:",
+                    lengthMenu: "Pokaż _MENU_ pozycji",
+                    info: "Pozycje od _START_ do _END_ z _TOTAL_ łącznie",
+                    infoEmpty: "Pozycji 0 z 0 dostępnych",
+                    infoFiltered: "(filtrowanie spośród _MAX_ dostępnych pozycji)",
+                    infoPostFix: "",
+                    loadingRecords: "Wczytywanie...",
+                    zeroRecords: "Nie znaleziono pasujących pozycji",
+                    emptyTable: "Brak danych",
+                    paginate: {
+                        first: "Pierwsza",
+                        previous: "Poprzednia",
+                        next: "Następna",
+                        last: "Ostatnia"
+                    },
+                    aria: {
+                        sortAscending: ": aktywuj, by posortować kolumnę rosnąco",
+                        sortDescending: ": aktywuj, by posortować kolumnę malejąco"
+                    }
+                },
+
+                ajax: {
+                    url: "/Friends/Opponents",
+                    dataSrc: ""
+                },
+                columns: [
+                    {
+                        render: function (data, type, opp) {
+                            return opp.email;
+                        }
+                    },
+                    {
+                        render: function (data, type, opp) {
+                            return opp.name + " " + opp.surname;
+                        }
+                    },
+                    {
+                        data: "id",
+                        render: function (data) {
+                            return "<button class='btn-success js-delete' data-opp-id=" + data + ">Dodaj</button>";
+                        }
+                    }
+                ]
+            });//Tworzenie tabeli dodawaniea przyjaciol
+            $('#pendingTable').delegate("tbody tr td button", "click", ".js-add", function (e) {
+                var button = $(this);
+                bootbox.confirm({
+                    message: "Czy chcesz potwierdzić dodanie tego znajomego?",
+                    buttons: {
+                        confirm: {
+                            label: 'Przyjmij',
+                            className: 'btn-success'
+                        },
+                        cancel: {
+                            label: 'Odrzuć',
+                            className: 'btn-danger'
+                        }
+                    },
+                    callback: function (result) {
+                        if (result) {
+                            $.ajax({
+                                url: "/Friends/ConfirmFriendship/" + button.attr("data-fr-id"),
+                                method: "PUT",
+                                success: function () {
+                                    button.parents("tr").remove();
+                                }
+                            });
+                        }
+                        else {
+                            $.ajax({
+                                url: "/api/friends/" + button.attr("data-fr-id"),
+                                method: "DELETE",
+                                success: function () {
+                                    button.parents("tr").remove();
+                                }
+                            });
+                        }
+                    }
+                });
+            });
+
+
+            $("#friendsTable").delegate("tbody tr td button", "click", ".js-delete", function (e) {
+                e.preventDefault();
+                console.log("usun");
+                var button = $(this);
+                bootbox.confirm({
+                    message: "Chcesz dodać tego użytkownika do grona swoich znajomych?",
+                    buttons: {
+                        confirm: {
+                            label: 'Tak',
+                            className: 'btn-success'
+                        },
+                        cancel: {
+                            label: 'Nie',
+                            className: 'btn-danger'
+                        }
+                    },
+                    callback: function (result) {
+                        if (result) {
+                            $.ajax({
+                                url: "/api/friends/" + button.attr("data-opp-id"),
+                                method: "POST",
+                                success: function () {
+                                    button.parents("tr").remove();
+                                }
+                            });
+                        }
+                    }
+                });
+            });//usuwanie meczu z historii
+
+        })
+
+    </script>
+}

@@ -1,0 +1,116 @@
+﻿
+@{
+    ViewBag.Title = "allmatches";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+    <style type="text/css">
+        .dataTable > thead > tr > th[class*="sort"]:after {
+            content: "" !important;
+        }
+        table{
+            border-collapse: separate;
+            border-spacing:2px;
+        }
+    </style>
+
+<h2>Wszystkie mecze!</h2>
+
+<table class="table table-hover text-center" id="matches">
+    <thead>
+        <tr>
+            <th scope="col"></th>
+            <th scope="col" style="width:10%">Wynik</th>
+            <th scope="col"></th>
+            <th scope="col"style="width:15%"></th>
+        </tr>
+    </thead>
+    <tbody>
+    </tbody>
+</table>
+
+@section scripts
+{
+    <script>
+        $(document).ready(function () {
+            $("#matches").delegate(".js-details", "click", ".js-delete", function (e) {
+                window.location.href = "/Comment/Index?matchId=" + $(this).attr("data-match-id");
+            });
+
+                     var table = $("#matches").DataTable({
+                language: {
+                    processing: "Przetwarzanie...",
+                    search: "Szukaj:",
+                    lengthMenu: "Pokaż _MENU_ pozycji",
+                    info: "Pozycje od _START_ do _END_ z _TOTAL_ łącznie",
+                    infoEmpty: "Pozycji 0 z 0 dostępnych",
+                    infoFiltered: "(filtrowanie spośród _MAX_ dostępnych pozycji)",
+                    infoPostFix: "",
+                    loadingRecords: "Wczytywanie...",
+                    zeroRecords: "Nie znaleziono pasujących pozycji",
+                    emptyTable: "Brak danych",
+                    paginate: {
+                        first: "Pierwsza",
+                        previous: "Poprzednia",
+                        next: "Następna",
+                        last: "Ostatnia"
+                    },
+                    aria: {
+                        sortAscending: ": aktywuj, by posortować kolumnę rosnąco",
+                        sortDescending: ": aktywuj, by posortować kolumnę malejąco"
+                    }
+                },
+                         createdRow: function (row, data, match) {
+                             if (data.scoreLeft > data.scoreRight) {
+                                 $(row).children(':nth-child(1)').addClass('table-success');
+                                 $(row).children(':nth-child(3)').addClass('table-danger');
+                                 $(row).children(':nth-child(2)').addClass('table-secondary');
+                                 $(row).children(':nth-child(4)').addClass('table-secondary');
+                             }
+                             else if (data.scoreLeft < data.scoreRight) {
+                                 $(row).children(':nth-child(3)').addClass('table-success');
+                                 $(row).children(':nth-child(1)').addClass('table-danger');
+                                 $(row).children(':nth-child(2)').addClass('table-secondary');
+                                 $(row).children(':nth-child(4)').addClass('table-secondary');
+                             }
+                             else {
+                                 $(row).children(':nth-child(3)').addClass('table-info');
+                                 $(row).children(':nth-child(1)').addClass('table-info');
+                                 $(row).children(':nth-child(2)').addClass('table-secondary');
+                                 $(row).children(':nth-child(4)').addClass('table-secondary');
+                             }
+                },
+                ajax: {
+                    url: "/Matches/All",
+                    dataSrc: ""
+                         },
+                         ordering:false,
+                columns: [
+                    {
+                        render: function (data, type, match) {
+                            console.log(match);
+                                return match.left.name + " " + match.left.surname;
+                        }
+                    },
+                        {
+                            render: function (data, type, match) {
+                                    return match.scoreLeft + " : " + match.scoreRight;
+                    }
+                }, {
+                    render: function (data, type, match) {
+                            return match.right.name + " " + match.right.surname;
+                    }
+                    },
+                    {
+                        data:"id",
+                        render: function (data) {
+                            return "<button class='btn-primary js-details' data-match-id=" + data + ">Szczegóły</button>";
+                        }
+                    }
+                ]
+         });//Tworzenie tabeli meczy
+
+        });
+    </script>
+
+}

@@ -1,0 +1,145 @@
+﻿@model TenisRecorder2.Models.MatchCommentsViewModel
+<head>
+    <style type="text/css">
+        .wonTd {
+            box-shadow: 0 0.5rem 1rem rgba(127,255,0, 0.35) !important;
+        }
+
+        .lostTd {
+            box-shadow: 0 0.5rem 1rem rgba(252,35,35, 0.35) !important;
+        }
+        .drawTd{
+            box-shadow: 0 0.5rem 1rem rgba(9, 101, 229, 0.35) !important;
+        }
+
+        #ppre {
+            white-space: pre; /* CSS 2.0 */
+            white-space: pre-wrap; /* CSS 2.1 */
+            white-space: pre-line; /* CSS 3.0 */
+            white-space: -pre-wrap; /* Opera 4-6 */
+            white-space: -o-pre-wrap; /* Opera 7 */
+            white-space: -moz-pre-wrap; /* Mozilla */
+            white-space: -hp-pre-wrap; /* HP Printers */
+            word-wrap: break-word; /* IE 5+ */
+            word-break: break-all;
+        }
+        #comments{
+                  word-wrap: break-word;      /* IE 5.5-7 */
+      white-space: -moz-pre-wrap; /* Firefox 1.0-2.0 */
+      white-space: pre-wrap;      /* current browsers */
+        }
+    </style>
+</head>
+
+@{
+    ViewBag.Title = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+    <h2>Dodaj swój komentarz</h2>
+    <div class="form-group form-horizontal text-center"  style="text-align:center">
+        <form id="newComment">
+            <div class="form-group">
+                <label class="col-md-2 control-label" style="margin-top:20px; font-size:medium">Wpisz komentarz</label>
+                <textarea rows="4" cols="50" id="newCommentText" class="form-control" style="margin:auto"></textarea>
+            </div>
+            <button class="btn btn-primary">Wyślij</button>
+        </form>
+    </div>
+<h2>Mecz</h2>
+<table class="table text-center shadow p-3 mb-5 bg-white rounded" id="match">
+    <thead>
+        <tr>
+            <th scope="col"></th>
+            <th scope="col">Wynik</th>
+            <th scope="col"></th>
+        </tr>
+    </thead>
+    <tbody>
+    </tbody>
+</table>
+
+<h2>Komentarze</h2>
+<table id="comments" class="table text-center shadow p-3 mb-5 bg-white rounded " style="max-width:1110px;overflow-wrap:break-word;">
+    <thead>
+        <tr>
+            <th scope="col">Autor</th>
+            <th scope="col">Treść</th>
+            <th scope="col">Data</th>
+        </tr>
+    </thead>
+    <tbody>
+        
+    </tbody>
+</table>
+@section scripts{
+    <script>
+        $(document).ready(function () {
+            var pageUrl = $(location).attr("href").split("=");
+            
+            var urlx = "../Api/Match/" + pageUrl[1];
+            $.ajax({
+                type: 'GET',
+                url: urlx,
+                dataType: 'json',
+                success: function (data) {
+                    var html = "<tr>";
+                    if (parseInt(data.scoreLeft) > parseInt(data.scoreRight)) {
+                        html += "<td class ='wonTd'>" + data.left.name + " " + data.left.surname + "</td>";
+                        html += "<td>" + data.scoreLeft + " : " + data.scoreRight + "</td>";
+                        html += "<td class='lostTd'>" + data.right.name + " " + data.right.surname + "</td></tr>";
+                    }
+                    else if (parseInt(data.scoreLeft) < parseInt(data.scoreRight)) {
+                        html += "<td class ='lostTd'>" + data.left.name + " " + data.left.surname + "</td>";
+                        html += "<td>" + data.scoreLeft + " : " + data.scoreRight + "</td>";
+                        html += "<td class='wonTd'>" + data.right.name + " " + data.right.surname + "</td></tr>";
+                    }
+                    else {
+                        html += "<td class ='drawTd'>" + data.left.name + " " + data.left.surname + "</td>";
+                        html += "<td>" + data.scoreLeft + " : " + data.scoreRight + "</td>";
+                        html += "<td class='drawTd'>" + data.right.name + " " + data.right.surname + "</td></tr>";
+                    }
+
+                    $('#match').append(html);
+                }
+            });
+
+            urlx = "Get/" + pageUrl[1];
+            $.ajax({
+                type: 'GET',
+                url: urlx,
+                dataType: 'json',
+                success: function (data) {
+                    $.each(data, function (index, item) {
+                        var prepDate = "" + item.date.split('T');
+                        var time = prepDate.split('.');
+                        $('#comments').append('<tr><td>' + item.author.name + ' ' + item.author.surname + '</td><td style="word-break:break-word;">' + item.comment + '</td><td>' +  time[0] + '</td></tr>');
+                    })
+                }
+            });
+
+            $('#newComment').submit(function (e) {
+                e.preventDefault();
+                var vm = {
+                    MatchId: pageUrl[1],
+                    CommentContent: $('#newCommentText').val()
+                };
+                console.log(vm);
+                $.ajax({
+                    url: "/api/comment",
+                    method: "post",
+                    data: vm
+                })
+                    .done(function () {
+                        console.log("done");
+                        location.reload();
+
+                    })
+                    .fail(function () {
+                        console.log("fail");
+                    })
+            })
+        });
+    </script>
+
+}

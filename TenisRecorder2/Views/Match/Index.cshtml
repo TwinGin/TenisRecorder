@@ -1,0 +1,337 @@
+﻿@model TenisRecorder2.Models.HistoryAndMatchModelView
+@using Microsoft.AspNet.Identity
+
+<style type="text/css">
+    .wonTd {
+        background-color: rgba(3, 255, 0, 0.78);
+    }
+
+    .lostTd {
+        background-color: rgba(241, 11, 11, 0.89);
+    }
+
+    .drawTd {
+        background-color: rgb(43, 79, 154);
+    }
+
+    #ppre {
+        white-space: pre; /* CSS 2.0 */
+        white-space: pre-wrap; /* CSS 2.1 */
+        white-space: pre-line; /* CSS 3.0 */
+        white-space: -pre-wrap; /* Opera 4-6 */
+        white-space: -o-pre-wrap; /* Opera 7 */
+        white-space: -moz-pre-wrap; /* Mozilla */
+        white-space: -hp-pre-wrap; /* HP Printers */
+        word-wrap: break-word; /* IE 5+ */
+        word-break: break-all;
+    }
+
+    button{
+        margin-right:10px;
+    }
+
+    .dataTable > thead > tr > th[class*="sort"]:after {
+        content: "" !important;
+    }
+
+</style>
+<h2>Moje mecze</h2>
+
+@{
+    <h4>Uzupełnij rozegrany mecz</h4>
+    <hr />
+
+
+    if (TempData["noValidData"] != null && TempData["noValidData"].Equals("yes"))
+    {
+        <p>Nie wybrano przeciwnika lub wyniki są niepoprawne.</p>
+    }
+
+<div style="width:100%;margin:10px auto;text-align:center">
+    <button style="margin: 0 50px" id="showFriends" type="button" class="btn btn-info btn-lg" data-toggle="modal" data-target="#friendsModal">Zagraj ze znajomym!</button>
+    <button style="margin: 0 50px" id="showEnemies" type="button" class="btn btn-info btn-lg" data-toggle="modal" data-target="#enemiesModal">Wybierz przeciwnika!</button>
+</div>
+    <div class="form-group form-horizontal" style="text-align:center">
+        <form id="newMatch">
+            <div class="flex-row-reverse">
+                <select class="browser-default custom-select" id="opponents" disabled></select>
+            </div>
+            <div class="form-group">
+                <label class="col-md-2 control-label" style="margin-top:20px;">Twój wynik</label>
+                <input id="scLeft" type="number" value="" min="0" class="form-control" style="margin:auto;" />
+            </div>
+            <div class="form-group">
+                <label class="col-md-2 control-label" style="margin-top:20px;">Wynik przeciwnika</label>
+                <input id="scRight" type="number" value="" min="0" class="form-control" style="margin:auto;" />
+            </div>
+            <button class="btn btn-primary">Wyślij</button>
+        </form>
+
+    </div>
+}
+<h2>Moja historia</h2>
+<table class="table table-hover text-center" id="matches">
+    <thead>
+        <tr>
+            <th scope="col"></th>
+            <th scope="col">Wynik</th>
+            <th scope="col"></th>
+            <th scope="col"></th>
+            <th scope="col">Usuń</th>
+        </tr>
+    </thead>
+    <tbody>
+        @{string id = User.Identity.GetUserId();}
+
+    </tbody>
+</table>
+
+<div class="modal" id="friendsModal">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Wybierz znajomego!</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" style="text-align:center">
+                <select class="browser-default custom-select" style="text-align:center" id="friendsSelect"></select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="confirmFriend" data-dismiss="modal">Wybierz</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Zamknij</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="enemiesModal">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Wybierz przeciwnika!</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" style="text-align:center">
+                <select class="browser-default custom-select" id="enemiesSelect"></select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="confirmEnemy" data-dismiss="modal">Wybierz</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Zamknij</button>
+            </div>
+        </div>
+    </div>
+</div>
+@section scripts
+{
+    <script>
+        $(document).ready(function () {
+            $("#confirmFriend").click(function () {
+                $("#opponents").val($("#friendsSelect").val());
+            });
+
+            $("#confirmEnemy").click(function () {
+                $("#opponents").val($("#enemiesSelect").val());
+            });
+
+
+            $("#showFriends").click(function () {
+                $('#friendsSelect').empty();
+             $.ajax({
+                    type: 'GET',
+                    dataType: 'json',
+                    url: '/Friends/Paried',
+                    success: function (response) {
+                        $.each(response, function (i, item) {
+                            $('#friendsSelect').append(
+                                $('<option></option>').val(item.email).html(item.name)
+                            );
+                         
+                        });
+                    }
+                });
+            });
+            $("#showEnemies").click(function () {
+                                $('#enemiesSelect').empty();
+              $.ajax({
+                    type: 'GET',
+                    dataType: 'json',
+                    url: '/Friends/Notparied',
+                    success: function (response) {
+                        $.each(response, function (i, item) {
+                            $('#enemiesSelect').append(
+                                $('<option></option>').val(item.email).html(item.name)
+                            );
+                         
+                        });
+                    }
+                });
+            })
+            $.getJSON("Match/Opponents", function (data) {
+                $.each(data, function (index, item) {
+                    $('#opponents').append(
+                        $('<option></option>').val(item.email).html(item.name + " " + item.surname + "(" + item.email+")")
+                    );
+                });
+            });//Generowanie droplist
+
+            $("#matches").delegate(".js-details", "click", ".js-delete", function (e) {
+                window.location.href = "/Comment/Index?matchId=" + $(this).attr("data-match-id");
+            });
+            var deleted = false;
+            var idUser = "@id";
+            $("#matches").delegate(".js-delete", "click", ".js-delete", function (e) {
+                console.log("usun");
+                var button = $(this);
+                            bootbox.confirm({
+                    message: "Czy na pewno chcesz usunąć ten mecz?",
+                    buttons: {
+                        confirm: {
+                            label: 'Tak',
+                            className: 'btn-success'
+                        },
+                        cancel: {
+                            label: 'Nie',
+                            className: 'btn-danger'
+                        }
+                    },
+                    callback: function (result) {
+                        if (result) {
+                            $.ajax({
+                                url: "/api/match/delete/" + button.attr("data-match-id"),
+                                method: "DELETE",
+                                success: function () {
+                                    button.parents("tr").remove();
+                                }
+                            });
+                        }
+                    }
+                            });
+            });//usuwanie meczu z historii
+         var table = $("#matches").DataTable({
+                language: {
+                    processing: "Przetwarzanie...",
+                    search: "Szukaj:",
+                    lengthMenu: "Pokaż _MENU_ pozycji",
+                    info: "Pozycje od _START_ do _END_ z _TOTAL_ łącznie",
+                    infoEmpty: "Pozycji 0 z 0 dostępnych",
+                    infoFiltered: "(filtrowanie spośród _MAX_ dostępnych pozycji)",
+                    infoPostFix: "",
+                    loadingRecords: "Wczytywanie...",
+                    zeroRecords: "Nie znaleziono pasujących pozycji",
+                    emptyTable: "Brak danych",
+                    paginate: {
+                        first: "Pierwsza",
+                        previous: "Poprzednia",
+                        next: "Następna",
+                        last: "Ostatnia"
+                    },
+                    aria: {
+                        sortAscending: ": aktywuj, by posortować kolumnę rosnąco",
+                        sortDescending: ": aktywuj, by posortować kolumnę malejąco"
+                    }
+                },
+                createdRow: function (row, data, match) {
+                    if (data.left.id == idUser) {
+                        if (data.scoreLeft > data.scoreRight)
+                            $(row).addClass('table-success');
+                        else if (data.scoreLeft < data.scoreRight)
+                            $(row).addClass('table-danger');
+                        else
+                            $(row).addClass('table-info');
+                    }
+                    else if (data.right.id == idUser) {
+                        if (data.scoreRight > data.scoreLeft)
+                            $(row).addClass('table-success');
+                        else if (data.scoreLeft > data.scoreRight)
+                            $(row).addClass('table-danger');
+                        else
+                            $(row).addClass('table-info');
+                    }
+                },
+                ajax: {
+                    url: "/api/match",
+                    dataSrc: ""
+             },
+             ordering:false,
+                columns: [
+                    {
+                        render: function (data, type, match) {
+
+                            if (match.left.id == idUser) {
+
+                                return match.left.name + " " + match.left.surname;
+                            }
+                            else
+                                return match.right.name + " " + match.right.surname;
+                        }
+                    },
+                        {
+                            render: function (data, type, match) {
+                                if (match.left.id == idUser) {
+
+                                    return match.scoreLeft + " : " + match.scoreRight;
+                                }
+                                else
+                                    return match.scoreRight + " : " + match.scoreLeft;
+                    }
+                }, {
+                    render: function (data, type, match) {
+                        if (match.left.id == idUser) {
+
+                            return match.right.name + " " + match.right.surname;
+                        }
+                        else
+                            return match.left.name + " " + match.left.surname;
+                    }
+                    },
+                    {
+                        data:"id",
+                        render: function (data) {
+                            return "<button class='btn-primary js-details' data-match-id=" + data + ">Szczegóły</button>";
+                        }
+                    },
+                    {
+                    data: "id",
+                    render: function (data) {
+                        return "<button class='btn-warning js-delete' data-match-id=" + data + ">Usun</button>";
+                    }
+                }
+                ]
+         });//Tworzenie tabeli meczy
+
+
+
+
+            var vm2;
+            $("#newMatch").submit(function (e) {
+                e.preventDefault();
+                var vm =
+                {
+                    Id: $("#opponents").val(),
+                    ScoreLeft: $("#scLeft").val(),
+                    ScoreRight: $("#scRight").val(),
+                };
+                console.log(vm);
+                $.ajax({
+                    url: "/api/match",
+                    method: "post",
+                    data: vm
+                })
+                    .done(function () {
+                        console.log("done ");
+                        $("#scLeft").val("");
+                        $("#scRight").val("");
+                        table.ajax.reload();
+                    })
+                    .fail(function () {
+                        console.log("fail " + vm);
+                    })
+            });//Tworzenie nowego meczu
+
+        });
+    </script>
+}
